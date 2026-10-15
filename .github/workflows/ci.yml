@@ -1,0 +1,490 @@
+name: AGENT.ONE CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-and-unit:
+    name: Static + Unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            client/package-lock.json
+            client-auth/package-lock.json
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Main client install
+        run: npm ci
+        working-directory: client
+
+      - name: Main client unit tests
+        run: npm test
+        working-directory: client
+
+      - name: Main client build
+        run: npm run build
+        working-directory: client
+
+      - name: Auth client install
+        run: npm ci
+        working-directory: client-auth
+
+      - name: Auth client unit tests
+        run: npm test
+        working-directory: client-auth
+
+      - name: Auth client production build
+        run: npm run build
+        working-directory: client-auth
+        env:
+          VITE_MAIN_APP_ORIGIN: https://agent-one.ru
+
+      - name: Go format check
+        run: |
+          UNFORMATTED=$(gofmt -l server/cmd)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "Unformatted files:"
+            echo "$UNFORMATTED"
+            exit 1
+          fi
+          echo "All Go files formatted"
+
+      - name: Go unit tests
+        run: go test ./cmd -count=1 -v
+        working-directory: server
+
+      - name: Go vet
+        run: go vet ./cmd
+        working-directory: server
+
+      - name: Backend build (outside source tree)
+        run: |
+          mkdir -p /tmp/agent-one-build
+          go build -o /tmp/agent-one-build/agent-one-server ./cmd
+        working-directory: server
+
+      - name: CI foundation audit
+        run: node scripts/ci_foundation_audit_2026.mjs
+
+      - name: Secret pattern scan
+        run: |
+          HITS=$(grep -rI 'gsk_[A-Za-z0-9_-]\{20,\}' server/cmd/ scripts/ --include='*.go' --include='*.mjs' --exclude='*.env' || true)
+          if [ -n "$HITS" ]; then
+            echo "WARNING: Potential secret patterns found"
+            echo "$HITS"
+          fi
+
+      - name: Telegram absence scan
+        run: |
+          # Fail only on unexpected implementation references in product source.
+          # Negative tests and public contact handles are allowlisted.
+          HITS=$(grep -rIn --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=dist-auth --exclude-dir=.git --exclude-dir=.github --exclude='package-lock.json' --exclude='*.md' -i 'telegram' server/cmd client/src client-auth/src shared scripts || true)
+          BAD=$(echo "$HITS" | grep -vE \
+            'PUBLIC_CONTACTS\.telegram|telegram\.me/|t\.me/|must not appear|NoTelegram|queryByText\(/telegram|not\.toMatch\(/telegram|not\.toMatch\(/oauth\\.telegram|isProviderAllowed\("telegram"\)|oauth/telegram|auth_provider_removal|legal\.compliance\.test|legal_consent_test|auth_identity_test|auth\.test\.js|LoginPage\.test|RegisterPage\.test|documents\.js|config\.js|PublicContactBlock' \
+            || true)
+          if [ -n "$BAD" ]; then
+            echo "Unexpected Telegram references:"
+            echo "$BAD"
+            exit 1
+          fi
+          # Hard-fail if Telegram auth implementation files reappear.
+          if ls server/cmd/telegram_*.go client-auth/src/**/*telegram* 2>/dev/null | grep -q .; then
+            echo "Telegram implementation files found"
+            ls server/cmd/telegram_*.go client-auth/src/**/*telegram* 2>/dev/null || true
+            exit 1
+          fi
+          echo "Telegram auth surfaces absent"
+
+      - name: Binary artifact scan
+        run: |
+          BINS=$(find . -name '*.exe' -o -name '*.out' -o -name '*.test' | grep -v node_modules | grep -v '.git' || true)
+          if [ -n "$BINS" ]; then
+            echo "Binaries in source tree:"
+            echo "$BINS"
+            exit 1
+          fi
+          echo "No binaries in source tree"
+
+  runtime-integration:
+    name: Runtime Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: static-and-unit
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: agentone_test
+          POSTGRES_PASSWORD: agentone_test
+          POSTGRES_DB: agentone_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build backend
+        run: go build -o /tmp/agent-one-server ./cmd
+        working-directory: server
+
+      - name: Start backend
+        run: |
+          /tmp/agent-one-server &
+          sleep 4
+        env:
+          DATABASE_URL: postgres://agentone_test:agentone_test@localhost:5432/agentone_test?sslmode=disable
+          PORT: "18080"
+          JWT_SECRET: integration-test-secret-32-chars-min
+          AI_PROVIDER: rule_based
+          GROQ_API_KEY: ""
+          DEV_ADMIN_TOKEN: dev-secret
+
+      - name: Run integration tests
+        run: node scripts/integration_runtime_2026.mjs
+        env:
+          AGENT_ONE_BASE_URL: http://localhost:18080
+          DEV_ADMIN_TOKEN: dev-secret
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: static-and-unit
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: agentone
+          POSTGRES_PASSWORD: agentone
+          POSTGRES_DB: agentone_it
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Build backend
+        run: go build -o /tmp/agent-one-server ./cmd
+        working-directory: server
+
+      - name: Start backend
+        run: |
+          /tmp/agent-one-server &
+          sleep 3
+        env:
+          DATABASE_URL: postgres://agentone:agentone@localhost:5432/agentone_it?sslmode=disable
+          PORT: "18080"
+          JWT_SECRET: integration-test-secret-32-chars-min
+          AI_PROVIDER: rule_based
+          GROQ_API_KEY: ""
+          DEV_ADMIN_TOKEN: dev-secret
+
+      - name: Run integration tests
+        run: node scripts/integration_runtime_2026.mjs
+        env:
+          AGENT_ONE_BASE_URL: http://localhost:18080
+          DEV_ADMIN_TOKEN: dev-secret
+
+  browser-e2e:
+    name: Browser E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: runtime-integration
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: agentone_e2e
+          POSTGRES_PASSWORD: agentone_e2e
+          POSTGRES_DB: agentone_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+        working-directory: client
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: client
+      - name: Build frontend
+        run: npm run build
+        working-directory: client
+      - name: Build backend
+        run: go build -o /tmp/agent-one-server ./cmd
+        working-directory: server
+      - name: Start backend
+        run: |
+          /tmp/agent-one-server &
+          sleep 4
+        env:
+          DATABASE_URL: postgres://agentone_e2e:agentone_e2e@localhost:5432/agentone_e2e?sslmode=disable
+          PORT: "18080"
+          JWT_SECRET: e2e-test-secret-32-chars-min-here-now
+          AI_PROVIDER: rule_based
+          GROQ_API_KEY: ""
+          DEV_ADMIN_TOKEN: dev-secret
+      - name: Run E2E tests
+        run: npx playwright test --reporter=list
+        working-directory: client
+        env:
+          AGENT_ONE_E2E_BASE_URL: http://localhost:18080
+
+  release-readiness:
+    name: Release Readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: browser-e2e
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Go unit tests
+        run: go test ./cmd -count=1 -v
+        working-directory: server
+      - name: Build with metadata
+        run: go build -ldflags "-X main.version=1.0.0 -X main.commit= -X main.buildTime=2026-07-09T08:53:03Z" -o /tmp/agent-one-server ./cmd
+        working-directory: server
+      - name: Release audit
+        run: node scripts/release_readiness_audit_2026.mjs
+
+  operational-readiness:
+    name: Operational Readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: release-readiness
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Go unit tests
+        run: go test ./cmd -count=1 -v
+        working-directory: server
+      - name: Build backend
+        run: go build -o /tmp/agent-one-server ./cmd
+        working-directory: server
+      - name: Operational audit
+        run: node scripts/operational_readiness_audit_2026.mjs
+
+  security-hardening:
+    name: Security Hardening
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: operational-readiness
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Go unit tests
+        run: go test ./cmd -count=1 -v
+        working-directory: server
+      - name: Build backend
+        run: go build -o /tmp/agent-one-server ./cmd
+        working-directory: server
+      - name: Security audit
+        run: node scripts/security_hardening_audit_2026.mjs
+
+  # Temporary pre-merge gate for audit/full-repository-cleanup:
+  # production Docker image build + runtime/SPA/auth verify.
+  # Keep enabled until the audit PR is merged (do not disable on failure).
+  production-docker-verify:
+    name: Production Docker Verify
+    if: github.ref_name == 'audit/full-repository-cleanup' || github.head_ref == 'audit/full-repository-cleanup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: security-hardening
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: agentone_docker
+          POSTGRES_PASSWORD: agentone_docker
+          POSTGRES_DB: agentone_docker
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client-auth/package-lock.json
+
+      - name: Confirm audit branch preflight
+        run: |
+          echo "HEAD=$(git rev-parse HEAD)"
+          git cat-file -e 9bde4e82ec66e7d1882ac5f601c69b871c24971f^{commit}
+          git merge-base --is-ancestor 9bde4e82ec66e7d1882ac5f601c69b871c24971f HEAD
+          echo "Contains baseline 9bde4e8=yes"
+          test ! -d migrations
+          test ! -d server/migrations
+          echo "No dedicated SQL migrations directory (schema via initDB IF NOT EXISTS)"
+
+      - name: Auth portal production build
+        run: |
+          npm ci
+          npm test
+          VITE_MAIN_APP_ORIGIN=https://agent-one.ru npm run build
+          test -f ../dist-auth/index.html
+        working-directory: client-auth
+
+      - name: Build production Docker image
+        run: |
+          docker build \
+            --build-arg VERSION=pr-audit \
+            --build-arg COMMIT=${{ github.sha }} \
+            --build-arg BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            --build-arg VITE_AUTH_ORIGIN=http://127.0.0.1:5180 \
+            -t agentone-pr:${{ github.sha }} \
+            .
+
+      - name: Start app container on host network
+        run: |
+          docker run -d --name agentone-pr-verify --network host \
+            -e DATABASE_URL='postgres://agentone_docker:agentone_docker@127.0.0.1:5432/agentone_docker?sslmode=disable' \
+            -e PORT=8080 \
+            -e JWT_SECRET='docker-verify-secret-32-chars-min' \
+            -e AI_PROVIDER=rule_based \
+            -e GROQ_API_KEY='' \
+            -e DEV_ADMIN_TOKEN=dev-secret \
+            -e APP_ENV=test \
+            agentone-pr:${{ github.sha }}
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8080/api/live >/dev/null; then
+              echo "app ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "app failed to become ready"
+          docker logs agentone-pr-verify || true
+          exit 1
+
+      - name: Start auth portal preview (SPA)
+        run: |
+          npx --yes serve@14 -s ../dist-auth -l 5180 &
+          echo $! > /tmp/auth-portal.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5180/login >/dev/null; then
+              echo "auth portal ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "auth portal failed to become ready"
+          exit 1
+        working-directory: client-auth
+
+      - name: Runtime + SPA + legal verify
+        run: node scripts/pr_docker_verify_2026.mjs
+        env:
+          AGENT_ONE_VERIFY_APP_URL: http://127.0.0.1:8080
+          AGENT_ONE_VERIFY_AUTH_URL: http://127.0.0.1:5180
+
+      - name: Dump logs on failure
+        if: failure()
+        run: |
+          docker ps -a || true
+          docker logs agentone-pr-verify || true
+
+      - name: Cleanup containers
+        if: always()
+        run: |
+          docker rm -f agentone-pr-verify || true
+          if [ -f /tmp/auth-portal.pid ]; then kill $(cat /tmp/auth-portal.pid) || true; fi

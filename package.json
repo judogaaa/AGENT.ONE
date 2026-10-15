@@ -1,0 +1,24 @@
+{
+  "name": "agent-one-product-go-stable",
+  "private": true,
+  "version": "1.2.0",
+  "type": "module",
+  "scripts": {
+    "server": "cd server && go run ./cmd",
+    "client": "cd client && npm run dev",
+    "dev": "npm run server & npm run client",
+    "build": "cd client && npm run build && cd ../server && go build -o ../.build/agentone ./cmd",
+    "smoke": "node scripts/smoke.mjs",
+    "server:d-drive": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/with-d-drive-env.ps1 powershell -NoProfile -Command \"Set-Location server; go run ./cmd\"",
+    "client:d-drive": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/with-d-drive-env.ps1 powershell -NoProfile -Command \"Set-Location client; npm run dev\"",
+    "build:d-drive": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/with-d-drive-env.ps1 powershell -NoProfile -Command \"Set-Location client; npm run build; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Set-Location ../server; go build -o ../.build/agentone ./cmd\"",
+    "smoke:d-drive": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/with-d-drive-env.ps1 node scripts/smoke.mjs",
+    "preflight:d-drive": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/with-d-drive-env.ps1"
+  },
+  "dependencies": {
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.2"
+  }
+}

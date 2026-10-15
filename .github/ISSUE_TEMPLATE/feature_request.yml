@@ -1,0 +1,21 @@
+name: "Предложить улучшение"
+description: "Предложите новую функцию или доработку"
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: "Какую проблему решаем?"
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: "Предлагаемое решение"
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Альтернативы"

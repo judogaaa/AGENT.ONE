@@ -1,0 +1,40 @@
+# Secrets and environment files
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/id_rsa*
+**/id_ed25519*
+**/.ssh/**
+**/*credentials*
+**/*secret*
+
+# Dependencies and generated builds
+**/node_modules/**
+**/dist/**
+**/dist-auth/**
+**/build/**
+**/coverage/**
+**/test-results/**
+**/playwright-report/**
+**/.cache/**
+**/.vite/**
+**/.next/**
+
+# Runtime data, dumps and backups
+**/*.sql
+**/*.dump
+**/*.backup
+**/*.log
+**/backups/**
+**/.temp/**
+**/tmp/**
+
+# Git internals and IDE caches
+.git/**
+.vscode/**
+.idea/**

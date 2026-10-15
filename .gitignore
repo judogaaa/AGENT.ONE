@@ -1,0 +1,137 @@
+# Node.js
+/node_modules
+/.vite
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Go build artifacts
+go
+agentone
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.local/
+*.pid
+*.pid.lock
+
+# Editor backups
+*~
+
+# Package manager
+.pnpm
+.yarn
+.npm
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+
+# Testing and coverage
+/coverage
+
+# Production
+/build
+/dist
+
+# Static files
+static/
+
+# Data files
+data/
+
+# Uploads
+uploads/
+
+# Frontend build artifacts
+frontend/dist
+frontend/node_modules
+client/dist
+client/node_modules
+client-auth/node_modules
+
+# Auth portal build output
+dist-auth/
+
+# Server build artifacts
+server/main
+server/server
+server/*.exe
+server/cmd/*.exe
+server/agentone
+server/agentone-server.exe
+.build/
+server/server.log
+server/server.err.log
+server/server.out.log
+server/errors.log
+server/agentone.store.json
+server/data/
+
+# AI / local
+.ao_salt
+__ao_salt__
+
+# Production secrets
+.env.production
+
+# Junk artifacts
+NUL
+*.output.txt
+seed_output.txt
+server_error.txt
+server_output.txt
+test-results/
+artifacts/
+demo_photo_inbox/
+
+# Additional private environment variants
+.env.*
+!.env.example
+!.env.production.example
+!.env.*.example
+*.env
+*.env.local
+
+# Local credentials, certificates and key material
+*.pem
+*.p12
+*.pfx
+*.jks
+id_rsa
+id_ed25519
+*.key
+
+# Local database exports and snapshots
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+*.backup
+
+# Local workspace and backup data
+.local/
+backups/
+*.sqlite3
+*.dump
+*.db
+*.backup

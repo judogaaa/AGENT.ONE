@@ -1,0 +1,37 @@
+name: "Сообщить об ошибке"
+description: "Сообщите о воспроизводимой ошибке в AGENT.ONE"
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Не публикуйте пароли, API-ключи, токены, личные данные или сведения о частных серверах."
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Что произошло?"
+      description: "Опишите фактическое поведение."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Ожидаемое поведение"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Как воспроизвести?"
+      placeholder: "1. Запустить локально\n2. Открыть страницу\n3. Выполнить действие"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: "Версия/коммит"
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Компонент"
+      options: ["Главный интерфейс", "Авторизация", "Go API", "База данных", "AI", "Другое"]

@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: agentone-db
+    environment:
+      POSTGRES_DB: agentone
+      POSTGRES_USER: agentone
+      POSTGRES_PASSWORD: agentone
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
