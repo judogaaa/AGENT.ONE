@@ -83,13 +83,8 @@ jobs:
       - name: CI foundation audit
         run: node scripts/ci_foundation_audit_2026.mjs
 
-      - name: Secret pattern scan
-        run: |
-          HITS=$(grep -rI 'gsk_[A-Za-z0-9_-]\{20,\}' server/cmd/ scripts/ --include='*.go' --include='*.mjs' --exclude='*.env' || true)
-          if [ -n "$HITS" ]; then
-            echo "WARNING: Potential secret patterns found"
-            echo "$HITS"
-          fi
+      - name: Public source and credential safety gate
+        run: node scripts/check_public_safety.mjs
 
       - name: Telegram absence scan
         run: |
@@ -368,12 +363,9 @@ jobs:
       - name: Security audit
         run: node scripts/security_hardening_audit_2026.mjs
 
-  # Temporary pre-merge gate for audit/full-repository-cleanup:
-  # production Docker image build + runtime/SPA/auth verify.
-  # Keep enabled until the audit PR is merged (do not disable on failure).
+  # Run production image / SPA verification for public main and pull requests.
   production-docker-verify:
     name: Production Docker Verify
-    if: github.ref_name == 'audit/full-repository-cleanup' || github.head_ref == 'audit/full-repository-cleanup'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     needs: security-hardening
@@ -406,37 +398,27 @@ jobs:
           cache: npm
           cache-dependency-path: client-auth/package-lock.json
 
-      - name: Confirm audit branch preflight
-        run: |
-          echo "HEAD=$(git rev-parse HEAD)"
-          git cat-file -e 9bde4e82ec66e7d1882ac5f601c69b871c24971f^{commit}
-          git merge-base --is-ancestor 9bde4e82ec66e7d1882ac5f601c69b871c24971f HEAD
-          echo "Contains baseline 9bde4e8=yes"
-          test ! -d migrations
-          test ! -d server/migrations
-          echo "No dedicated SQL migrations directory (schema via initDB IF NOT EXISTS)"
-
       - name: Auth portal production build
         run: |
           npm ci
           npm test
-          VITE_MAIN_APP_ORIGIN=https://agent-one.ru npm run build
+          VITE_MAIN_APP_ORIGIN=https://example.com npm run build
           test -f ../dist-auth/index.html
         working-directory: client-auth
 
       - name: Build production Docker image
         run: |
           docker build \
-            --build-arg VERSION=pr-audit \
+            --build-arg VERSION=ci-verify \
             --build-arg COMMIT=${{ github.sha }} \
             --build-arg BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
             --build-arg VITE_AUTH_ORIGIN=http://127.0.0.1:5180 \
-            -t agentone-pr:${{ github.sha }} \
+            -t agentone-ci:${{ github.sha }} \
             .
 
       - name: Start app container on host network
         run: |
-          docker run -d --name agentone-pr-verify --network host \
+          docker run -d --name agentone-ci-verify --network host \
             -e DATABASE_URL='postgres://agentone_docker:agentone_docker@127.0.0.1:5432/agentone_docker?sslmode=disable' \
             -e PORT=8080 \
             -e JWT_SECRET='docker-verify-secret-32-chars-min' \
@@ -444,7 +426,7 @@ jobs:
             -e GROQ_API_KEY='' \
             -e DEV_ADMIN_TOKEN=dev-secret \
             -e APP_ENV=test \
-            agentone-pr:${{ github.sha }}
+            agentone-ci:${{ github.sha }}
           for i in $(seq 1 40); do
             if curl -fsS http://127.0.0.1:8080/api/live >/dev/null; then
               echo "app ready"
@@ -453,7 +435,7 @@ jobs:
             sleep 2
           done
           echo "app failed to become ready"
-          docker logs agentone-pr-verify || true
+          docker logs agentone-ci-verify || true
           exit 1
 
       - name: Start auth portal preview (SPA)
@@ -481,10 +463,10 @@ jobs:
         if: failure()
         run: |
           docker ps -a || true
-          docker logs agentone-pr-verify || true
+          docker logs agentone-ci-verify || true
 
       - name: Cleanup containers
         if: always()
         run: |
-          docker rm -f agentone-pr-verify || true
+          docker rm -f agentone-ci-verify || true
           if [ -f /tmp/auth-portal.pid ]; then kill $(cat /tmp/auth-portal.pid) || true; fi
