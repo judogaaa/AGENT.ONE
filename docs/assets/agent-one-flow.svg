@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 404" width="1440" height="404" role="img" aria-labelledby="t d">
+<title id="t">AGENT.ONE — от магазина к покупателю через AI</title>
+<desc id="d">Три шага: продавец добавляет товары, AI-консультант отвечает с учётом каталога, покупатель выбирает.</desc>
+<defs>
+  <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0B1124"/><stop offset=".6" stop-color="#101431"/><stop offset="1" stop-color="#15112B"/></linearGradient>
+  <linearGradient id="violet" x2="1" y2="1"><stop stop-color="#B69CFF"/><stop offset=".55" stop-color="#817BF8"/><stop offset="1" stop-color="#4F7BF1"/></linearGradient>
+  <linearGradient id="edge" x2="1"><stop stop-color="#7179B8"/><stop offset=".5" stop-color="#A394FF"/><stop offset="1" stop-color="#5E7EE6"/></linearGradient>
+  <radialGradient id="halo"><stop stop-color="#6159E7" stop-opacity=".27"/><stop offset="1" stop-color="#6159E7" stop-opacity="0"/></radialGradient>
+  <filter id="blur"><feGaussianBlur stdDeviation="20"/></filter>
+  <filter id="shadow"><feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#080A20" flood-opacity=".8"/></filter>
+  <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#989DDF" stroke-opacity=".045"/></pattern>
+</defs>
+<rect x="1" y="1" width="1438" height="402" rx="32" fill="url(#bg)" stroke="#484E80" stroke-opacity=".75" stroke-width="2"/>
+<rect x="2" y="2" width="1436" height="400" rx="32" fill="url(#grid)"/>
+<circle cx="722" cy="166" r="230" fill="url(#halo)"/>
+<text x="70" y="68" font-size="19" font-family="Arial, sans-serif" font-weight="700" letter-spacing="3" fill="#B5A4FF">AGENT.ONE</text>
+<text x="256" y="68" font-size="18" font-family="Arial, sans-serif" fill="#A6AFD1">ОДНА ПЛАТФОРМА · ТРИ ШАГА</text>
+<g filter="url(#shadow)">
+  <rect x="70" y="105" width="364" height="235" rx="26" fill="#171D36" stroke="#5A659B" stroke-width="1.8"/>
+  <rect x="538" y="105" width="364" height="235" rx="26" fill="#1C1B42" stroke="#8179CA" stroke-width="1.8"/>
+  <rect x="1006" y="105" width="364" height="235" rx="26" fill="#171D36" stroke="#5A659B" stroke-width="1.8"/>
+</g>
+<path d="M450 214h68" stroke="#8B8CED" stroke-width="3" stroke-linecap="round"/><path d="M509 204l13 10-13 10" fill="none" stroke="#C0B5FF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M918 214h68" stroke="#8B8CED" stroke-width="3" stroke-linecap="round"/><path d="M977 204l13 10-13 10" fill="none" stroke="#C0B5FF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-family="Arial, sans-serif">
+<text x="98" y="140" fill="#AFA7FA" font-size="15" font-weight="700" letter-spacing="1.1">01  МАГАЗИН</text>
+<text x="566" y="140" fill="#C2B0FF" font-size="15" font-weight="700" letter-spacing="1.1">02  AI-КОНСУЛЬТАНТ</text>
+<text x="1034" y="140" fill="#AFA7FA" font-size="15" font-weight="700" letter-spacing="1.1">03  ПОКУПАТЕЛЬ</text>
+</g>
+<!-- shop card -->
+<rect x="116" y="169" width="118" height="90" rx="14" fill="#242F55" stroke="#8899F8"/>
+<path d="M120 194l15-19h81l15 19" fill="#8A7DF1"/><path d="M121 194h109" stroke="#C5BEFF" stroke-width="4" stroke-linecap="round"/>
+<path d="M137 194v43h79v-43" fill="none" stroke="#BBC7FC" stroke-width="3"/>
+<rect x="152" y="208" width="23" height="29" rx="3" fill="#5C6EA9"/><rect x="183" y="207" width="25" height="17" rx="3" fill="#7284B8"/>
+<rect x="255" y="177" width="143" height="12" rx="6" fill="#737FA7" fill-opacity=".7"/>
+<rect x="255" y="203" width="108" height="9" rx="5" fill="#535D87"/>
+<rect x="255" y="226" width="135" height="9" rx="5" fill="#535D87"/>
+<rect x="255" y="251" width="87" height="9" rx="5" fill="#535D87"/>
+<!-- assistant / bot -->
+<circle cx="682" cy="222" r="79" fill="#6D62DA" opacity=".17" filter="url(#blur)"/>
+<rect x="602" y="169" width="103" height="87" rx="32" fill="#C6C4F5" stroke="#EFF0FF" stroke-width="3"/>
+<rect x="615" y="180" width="78" height="58" rx="25" fill="#1A1E49"/>
+<path d="M635 205q10 16 20 0m17 0q10 16 20 0" fill="none" stroke="#B4A2FF" stroke-width="5" stroke-linecap="round"/>
+<path d="M654 168v-10" stroke="#B5B1FA" stroke-width="4"/><circle cx="654" cy="153" r="6" fill="#B5A7FF"/>
+<rect x="735" y="176" width="134" height="26" rx="13" fill="url(#violet)" opacity=".9"/>
+<rect x="735" y="216" width="103" height="12" rx="6" fill="#7F88B5"/>
+<rect x="735" y="240" width="124" height="10" rx="5" fill="#525C8F"/>
+<!-- buyer card -->
+<path d="M1040 185h22l17 57h89l15-44h-114" fill="none" stroke="#D4D8FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1096" cy="258" r="8" fill="#BAB0FF"/><circle cx="1164" cy="258" r="8" fill="#BAB0FF"/>
+<rect x="1209" y="180" width="127" height="13" rx="6" fill="#7784B0"/>
+<rect x="1209" y="207" width="90" height="11" rx="5" fill="#56628F"/>
+<rect x="1209" y="233" width="116" height="11" rx="5" fill="#56628F"/>
+<g font-family="Arial, sans-serif" font-size="18" fill="#C4CAE6" text-anchor="middle">
+  <text x="252" y="312">Товары и настройки</text>
+  <text x="720" y="312">Подбор и ответы</text>
+  <text x="1188" y="312">Удобный выбор</text>
+</g>
+<text x="720" y="374" text-anchor="middle" font-size="18" fill="#929BC4" font-family="Arial, sans-serif">Каталог → Диалог → Решение о покупке</text>
+</svg>
