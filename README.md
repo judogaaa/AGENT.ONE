@@ -119,7 +119,7 @@ cd server
 go run ./cmd
 ~~~
 
-После запуска откройте **http://localhost:8080**. На Windows из корня клона можно также выполнить `start-local.ps1` в PowerShell: он поднимает локальную базу, устанавливает зависимости при необходимости и собирает приложение. Отдельный портал авторизации: npm ci --prefix client-auth, затем npm run dev --prefix client-auth (http://localhost:5180).
+После запуска откройте **http://localhost:8080**. На Windows из корня клона можно также выполнить `.\start-local.ps1` в PowerShell: он поднимает локальную базу, устанавливает зависимости при необходимости и собирает приложение. Отдельный портал авторизации: npm ci --prefix client-auth, затем npm run dev --prefix client-auth (http://localhost:5180).
 
 Для активной разработки UI можно отдельно запустить `npm run dev --prefix client` из корня проекта и открыть `http://localhost:5173`. Vite проксирует `/api` на локальный Go-сервер.
 
